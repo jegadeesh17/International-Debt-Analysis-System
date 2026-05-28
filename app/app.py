@@ -12,6 +12,12 @@ import pandas as pd
 import plotly.express as px
 from sqlalchemy import create_engine
 
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
 # ── Page Configuration ────────────────────────────────────────────────────────
 st.set_page_config(page_title="International Debt Analytics", layout="wide")
 st.title("International Debt Analysis Dashboard")
@@ -22,7 +28,12 @@ st.markdown("An interactive dashboard exploring global economic debt indicators 
 @st.cache_resource
 def get_connection():
     """Create and return a cached SQLAlchemy engine for PostgreSQL."""
-    return create_engine("postgresql+psycopg2://postgres:jaundice@localhost:5432/international_debt")
+    db_user = os.getenv("DB_USER", "postgres")
+    db_password = os.getenv("DB_PASSWORD")
+    db_host = os.getenv("DB_HOST", "localhost")
+    db_port = os.getenv("DB_PORT", "5432")
+    db_name = os.getenv("DB_NAME", "international_debt")
+    return create_engine(f"postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}")
 
 engine = get_connection()
 

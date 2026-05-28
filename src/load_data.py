@@ -15,15 +15,18 @@ import pandas as pd
 import psycopg2
 from psycopg2.extras import execute_values
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
-# ── Database Configuration ────────────────────────────────────────────────────
-# Update these values to match your local PostgreSQL setup.
+# Load environment variables
+load_dotenv()
+
 DB_CONFIG = dict(
-    host="localhost",
-    database="international_debt",
-    user="postgres",
-    password="jaundice",
-    port="5432"
+    host=os.getenv("DB_HOST", "localhost"),
+    database=os.getenv("DB_NAME", "international_debt"),
+    user=os.getenv("DB_USER", "postgres"),
+    password=os.getenv("DB_PASSWORD"),
+    port=os.getenv("DB_PORT", "5432")
 )
 
 # Build the path to the data folder relative to this script file.
