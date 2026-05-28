@@ -28,12 +28,14 @@ st.markdown("An interactive dashboard exploring global economic debt indicators 
 @st.cache_resource
 def get_connection():
     """Create and return a cached SQLAlchemy engine for PostgreSQL."""
+    from urllib.parse import quote_plus
     db_user = os.getenv("DB_USER", "postgres")
     db_password = os.getenv("DB_PASSWORD")
+    db_password_encoded = f":{quote_plus(db_password)}" if db_password else ""
     db_host = os.getenv("DB_HOST", "localhost")
     db_port = os.getenv("DB_PORT", "5432")
     db_name = os.getenv("DB_NAME", "international_debt")
-    return create_engine(f"postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}")
+    return create_engine(f"postgresql+psycopg2://{db_user}{db_password_encoded}@{db_host}:{db_port}/{db_name}")
 
 engine = get_connection()
 
