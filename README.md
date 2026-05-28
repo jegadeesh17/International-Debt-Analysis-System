@@ -65,11 +65,15 @@ International-Debt-Analysis/
 
 ```python
 # From src/load_data.py
+import os
+from dotenv import load_dotenv
 import pandas as pd
 from sqlalchemy import create_engine
 
-# Establishing engine and loading
-engine = create_engine('postgresql://postgres:jaundice@localhost:5432/debt_analysis')
+# Load credentials and establish engine
+load_dotenv()
+db_url = f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+engine = create_engine(db_url)
 df.to_sql('debt_data', engine, if_exists='replace', index=False)
 ```
 
@@ -119,7 +123,21 @@ Create a PostgreSQL database named `debt_analysis` and ensure your database serv
 ### **2. Install Dependencies**
 
 ```bash
-pip install pandas numpy streamlit psycopg2 sqlalchemy plotly matplotlib seaborn
+pip install pandas numpy streamlit psycopg2 sqlalchemy plotly matplotlib seaborn python-dotenv
+```
+
+---
+
+### **3. Configure Environment Variables**
+
+Create a `.env` file in the root of the project folder:
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=international_debt
+DB_USER=postgres
+DB_PASSWORD=your_postgres_password
 ```
 
 ---
