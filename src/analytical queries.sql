@@ -7,6 +7,10 @@
 --   1. Basic     — simple SELECT and aggregate queries
 --   2. Intermediate — JOINs, GROUP BY, subqueries, HAVING
 --   3. Advanced  — CTEs, window functions, views, CASE
+--
+-- Note: Queries have been updated to filter out aggregate 
+-- regions (like 'Latin America & Caribbean') by ensuring
+-- the 'region' column IS NOT NULL.
 -- ---------------------------------------------------------
 
 
@@ -14,14 +18,16 @@
 -- SECTION 1: BASIC QUERIES
 -- ====================================================================
 
--- 1. Retrieve all distinct country names
+-- 1. Retrieve all distinct sovereign country names
 SELECT DISTINCT country_name
 FROM countries
+WHERE region IS NOT NULL
 ORDER BY country_name ASC;
 
--- 2. Count the total number of countries in the dataset
+-- 2. Count the total number of sovereign countries in the dataset
 SELECT COUNT(*) AS total_countries
-FROM countries;
+FROM countries
+WHERE region IS NOT NULL;
 
 -- 3. Count the total number of debt indicators
 SELECT COUNT(*) AS total_indicators
@@ -33,8 +39,11 @@ FROM debt_records
 LIMIT 10;
 
 -- 5. Calculate total global debt across all countries and years
-SELECT SUM(debt_value) AS total_global_debt
-FROM debt_records;
+-- Note: Excluding aggregates to avoid double counting
+SELECT SUM(d.debt_value) AS total_global_debt
+FROM debt_records d
+JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL;
 
 -- 6. List all unique indicator names alphabetically
 SELECT DISTINCT indicator_name
@@ -45,6 +54,7 @@ ORDER BY indicator_name ASC;
 SELECT c.country_name, COUNT(*) AS total_records
 FROM debt_records d
 JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL
 GROUP BY c.country_name
 ORDER BY total_records DESC;
 
@@ -52,19 +62,23 @@ ORDER BY total_records DESC;
 SELECT c.country_name, d.year, d.debt_value
 FROM debt_records d
 JOIN countries c ON d.country_code = c.country_code
-WHERE d.debt_value > 1000000000
+WHERE d.debt_value > 1000000000 AND c.region IS NOT NULL
 ORDER BY d.debt_value DESC;
 
--- 9. Find the minimum, maximum, and average debt value across all records
+-- 9. Find the minimum, maximum, and average debt value across all true country records
 SELECT
-    MIN(debt_value) AS minimum_debt,
-    MAX(debt_value) AS maximum_debt,
-    AVG(debt_value) AS average_debt
-FROM debt_records;
+    MIN(d.debt_value) AS minimum_debt,
+    MAX(d.debt_value) AS maximum_debt,
+    AVG(d.debt_value) AS average_debt
+FROM debt_records d
+JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL;
 
--- 10. Count the total number of rows in the debt records table
+-- 10. Count the total number of rows in the debt records table (excluding aggregates)
 SELECT COUNT(*) AS total_records_in_dataset
-FROM debt_records;
+FROM debt_records d
+JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL;
 
 
 -- ====================================================================
@@ -75,6 +89,7 @@ FROM debt_records;
 SELECT c.country_name, SUM(d.debt_value) AS total_country_debt
 FROM debt_records d
 JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL
 GROUP BY c.country_name
 ORDER BY total_country_debt DESC;
 
@@ -82,6 +97,7 @@ ORDER BY total_country_debt DESC;
 SELECT c.country_name, SUM(d.debt_value) AS total_country_debt
 FROM debt_records d
 JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL
 GROUP BY c.country_name
 ORDER BY total_country_debt DESC
 LIMIT 10;
@@ -90,20 +106,25 @@ LIMIT 10;
 SELECT c.country_name, AVG(d.debt_value) AS average_country_debt
 FROM debt_records d
 JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL
 GROUP BY c.country_name
 ORDER BY average_country_debt DESC;
 
--- 14. Calculate the total debt amount attributed to each indicator
+-- 14. Calculate the total debt amount attributed to each indicator (excluding aggregates)
 SELECT i.indicator_name, SUM(d.debt_value) AS total_indicator_debt
 FROM debt_records d
 JOIN indicators i ON d.indicator_code = i.indicator_code
+JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL
 GROUP BY i.indicator_name
 ORDER BY total_indicator_debt DESC;
 
--- 15. Find the single indicator that contributes the most to global debt
+-- 15. Find the single indicator that contributes the most to global debt (excluding aggregates)
 SELECT i.indicator_name, SUM(d.debt_value) AS total_indicator_debt
 FROM debt_records d
 JOIN indicators i ON d.indicator_code = i.indicator_code
+JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL
 GROUP BY i.indicator_name
 ORDER BY total_indicator_debt DESC
 LIMIT 1;
@@ -112,6 +133,7 @@ LIMIT 1;
 SELECT c.country_name, SUM(d.debt_value) AS total_country_debt
 FROM debt_records d
 JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL
 GROUP BY c.country_name
 ORDER BY total_country_debt ASC
 LIMIT 1;
@@ -121,6 +143,7 @@ SELECT c.country_name, i.indicator_name, SUM(d.debt_value) AS combined_debt
 FROM debt_records d
 JOIN countries c ON d.country_code = c.country_code
 JOIN indicators i ON d.indicator_code = i.indicator_code
+WHERE c.region IS NOT NULL
 GROUP BY c.country_name, i.indicator_name
 ORDER BY c.country_name ASC, combined_debt DESC;
 
@@ -128,21 +151,24 @@ ORDER BY c.country_name ASC, combined_debt DESC;
 SELECT c.country_name, COUNT(DISTINCT d.indicator_code) AS unique_indicators_count
 FROM debt_records d
 JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL
 GROUP BY c.country_name
 ORDER BY unique_indicators_count DESC;
 
 -- 19. Find countries whose total debt is above the global average total debt per country
--- The subquery first calculates each country's total, then we average those totals.
 SELECT c.country_name, SUM(d.debt_value) AS total_country_debt
 FROM debt_records d
 JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL
 GROUP BY c.country_name
 HAVING SUM(d.debt_value) > (
     SELECT AVG(country_total)
     FROM (
-        SELECT SUM(debt_value) AS country_total
-        FROM debt_records
-        GROUP BY country_code
+        SELECT SUM(d2.debt_value) AS country_total
+        FROM debt_records d2
+        JOIN countries c2 ON d2.country_code = c2.country_code
+        WHERE c2.region IS NOT NULL
+        GROUP BY c2.country_code
     ) AS country_totals
 )
 ORDER BY total_country_debt DESC;
@@ -154,6 +180,7 @@ SELECT
     RANK() OVER (ORDER BY SUM(d.debt_value) DESC) AS debt_rank
 FROM debt_records d
 JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL
 GROUP BY c.country_name;
 
 
@@ -161,10 +188,12 @@ GROUP BY c.country_name;
 -- SECTION 3: ADVANCED QUERIES
 -- ====================================================================
 
--- 21. Find the top 5 indicators that contribute the most to global debt
+-- 21. Find the top 5 indicators that contribute the most to global debt (excluding aggregates)
 SELECT i.indicator_name, SUM(d.debt_value) AS total_indicator_debt
 FROM debt_records d
 JOIN indicators i ON d.indicator_code = i.indicator_code
+JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL
 GROUP BY i.indicator_name
 ORDER BY total_indicator_debt DESC
 LIMIT 5;
@@ -174,16 +203,21 @@ SELECT
     c.country_name,
     SUM(d.debt_value) AS total_country_debt,
     ROUND(
-        (SUM(d.debt_value) / (SELECT SUM(debt_value) FROM debt_records)) * 100,
+        (SUM(d.debt_value) / (
+            SELECT SUM(d2.debt_value) 
+            FROM debt_records d2 
+            JOIN countries c2 ON d2.country_code = c2.country_code 
+            WHERE c2.region IS NOT NULL
+        )) * 100,
         2
     ) AS percentage_contribution
 FROM debt_records d
 JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL
 GROUP BY c.country_name
 ORDER BY total_country_debt DESC;
 
 -- 23. For each indicator, find the top 3 countries with the highest debt
--- Using a CTE (Common Table Expression) to first rank, then filter.
 WITH ranked_indicator_debt AS (
     SELECT
         i.indicator_name,
@@ -196,6 +230,7 @@ WITH ranked_indicator_debt AS (
     FROM debt_records d
     JOIN countries c ON d.country_code = c.country_code
     JOIN indicators i ON d.indicator_code = i.indicator_code
+    WHERE c.region IS NOT NULL
     GROUP BY i.indicator_code, i.indicator_name, c.country_name
 )
 SELECT indicator_name, country_name, total_debt
@@ -208,15 +243,16 @@ SELECT
     (MAX(d.debt_value) - MIN(d.debt_value)) AS debt_range
 FROM debt_records d
 JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL
 GROUP BY c.country_name
 ORDER BY debt_range DESC;
 
 -- 25. Create a reusable view for the top 10 highest-debt countries
--- Once created, you can query it with: SELECT * FROM top_10_high_debt_countries_view;
 CREATE OR REPLACE VIEW top_10_high_debt_countries_view AS
 SELECT c.country_name, SUM(d.debt_value) AS total_debt
 FROM debt_records d
 JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL
 GROUP BY c.country_name
 ORDER BY total_debt DESC
 LIMIT 10;
@@ -232,11 +268,11 @@ SELECT
     END AS debt_category
 FROM debt_records d
 JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL
 GROUP BY c.country_name
 ORDER BY total_country_debt DESC;
 
 -- 27. Calculate the running cumulative debt for each country over the years
--- The SUM() OVER() window function accumulates totals year by year per country.
 SELECT
     c.country_name,
     d.year,
@@ -247,15 +283,23 @@ SELECT
     ) AS cumulative_debt
 FROM debt_records d
 JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL
 GROUP BY c.country_code, c.country_name, d.year
 ORDER BY c.country_name ASC, d.year ASC;
 
--- 28. Find indicators where the average debt is higher than the global average
+-- 28. Find indicators where the average debt is higher than the global average (excluding aggregates)
 SELECT i.indicator_name, AVG(d.debt_value) AS avg_indicator_debt
 FROM debt_records d
 JOIN indicators i ON d.indicator_code = i.indicator_code
+JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL
 GROUP BY i.indicator_name
-HAVING AVG(d.debt_value) > (SELECT AVG(debt_value) FROM debt_records)
+HAVING AVG(d.debt_value) > (
+    SELECT AVG(d2.debt_value) 
+    FROM debt_records d2 
+    JOIN countries c2 ON d2.country_code = c2.country_code 
+    WHERE c2.region IS NOT NULL
+)
 ORDER BY avg_indicator_debt DESC;
 
 -- 29. Find countries that account for more than 5% of total global debt
@@ -264,12 +308,17 @@ SELECT
     SUM(d.debt_value) AS total_country_debt
 FROM debt_records d
 JOIN countries c ON d.country_code = c.country_code
+WHERE c.region IS NOT NULL
 GROUP BY c.country_name
-HAVING SUM(d.debt_value) > (SELECT SUM(debt_value) * 0.05 FROM debt_records)
+HAVING SUM(d.debt_value) > (
+    SELECT SUM(d2.debt_value) * 0.05 
+    FROM debt_records d2 
+    JOIN countries c2 ON d2.country_code = c2.country_code 
+    WHERE c2.region IS NOT NULL
+)
 ORDER BY total_country_debt DESC;
 
 -- 30. Find the single biggest debt category (indicator) for each country
--- Uses ROW_NUMBER() to pick only the top-ranked indicator per country.
 WITH country_indicator_totals AS (
     SELECT
         c.country_name,
@@ -282,6 +331,7 @@ WITH country_indicator_totals AS (
     FROM debt_records d
     JOIN countries c ON d.country_code = c.country_code
     JOIN indicators i ON d.indicator_code = i.indicator_code
+    WHERE c.region IS NOT NULL
     GROUP BY c.country_code, c.country_name, i.indicator_name
 )
 SELECT country_name, indicator_name, total_debt AS dominant_indicator_debt

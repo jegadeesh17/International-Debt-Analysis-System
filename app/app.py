@@ -332,13 +332,14 @@ AXIS_LABELS = {
     "pct_gni":    "External Debt (% of GNI)",
 }
 
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "Overview & Trends",
     "Debt Extremes", 
     "Geospatial Analysis", 
     "Income Groups",
     "Debt vs Per Capita",
-    "Indicator Correlation"
+    "Indicator Correlation",
+    "Analytical Queries"
 ])
 
 with tab1:
@@ -589,3 +590,84 @@ with tab6:
         st.plotly_chart(fig_heat, use_container_width=True)
     else:
         st.info("No heatmap data available.")
+
+with tab7:
+    st.subheader("SQL Analytics Hub 📊")
+    st.markdown("Explore database insights using predefined analytical queries. You can also customize and run custom SQL queries.")
+    
+    import re
+    from pathlib import Path
+    
+    @st.cache_data
+    def load_predefined_queries():
+        sql_file_path = Path(__file__).resolve().parent.parent / "src" / "analytical queries.sql"
+        if not sql_file_path.exists():
+            return {}
+            
+        with open(sql_file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            
+        categories = re.split(r'-- ====================================================================\n-- SECTION \d+: (.*?)\n-- ====================================================================', content)
+        
+        queries = {}
+        query_id = 1
+        for i in range(1, len(categories), 2):
+            category_name = categories[i].strip().title()
+            category_content = categories[i+1]
+            
+            query_blocks = re.split(r'-- (\d+\.\s.*?)\n', category_content)
+            
+            for j in range(1, len(query_blocks), 2):
+                title_desc = query_blocks[j].strip()
+                sql = query_blocks[j+1].strip()
+                
+                queries[query_id] = {
+                    "category": category_name,
+                    "title": title_desc,
+                    "description": title_desc,
+                    "sql": sql
+                }
+                query_id += 1
+                
+        return queries
+
+    predefined_queries = load_predefined_queries()
+    
+    if predefined_queries:
+        categories = sorted(list(set(q["category"] for q in predefined_queries.values())))
+        selected_category = st.selectbox("Select Query Category", options=categories)
+        
+        cat_queries = {qid: q for qid, q in predefined_queries.items() if q["category"] == selected_category}
+        query_options = {q["title"]: qid for qid, q in cat_queries.items()}
+        selected_title = st.selectbox("Select Query", options=list(query_options.keys()))
+        selected_qid = query_options[selected_title]
+        query_info = predefined_queries[selected_qid]
+        
+        st.info(f"**Query Description**: {query_info['description']}")
+        
+        edit_mode = st.checkbox("Edit / Customize SQL Query 📝", value=False)
+        if edit_mode:
+            sql_to_run = st.text_area("SQL Statement", value=query_info["sql"], height=200)
+        else:
+            sql_to_run = query_info["sql"]
+            st.code(sql_to_run, language="sql")
+            
+        if st.button("Run Query ⚡", use_container_width=True):
+            with st.spinner("Executing query..."):
+                try:
+                    # Strip out SQL comments before checking the command type
+                    sql_no_comments = re.sub(r'--.*?\n', '', sql_to_run + '\n').strip().upper()
+                    
+                    if sql_no_comments.startswith(("SELECT", "WITH")):
+                        res_df = pd.read_sql(sql_to_run, engine)
+                        st.success(f"Query returned {len(res_df)} record(s).")
+                        st.dataframe(res_df, use_container_width=True)
+                    else:
+                        from sqlalchemy import text
+                        with engine.begin() as conn:
+                            conn.execute(text(sql_to_run))
+                        st.success("Query executed successfully. (No data to display)")
+                except Exception as e:
+                    st.error(f"Failed to execute query: {e}")
+    else:
+        st.error("Could not load predefined queries from the SQL file.")
