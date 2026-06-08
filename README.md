@@ -1,27 +1,234 @@
-# 🎯 International Debt Analysis System
+# International Debt Analysis System
 
-An end-to-end data analytics and visualization platform designed to ingest, structure, and explore World Bank International Debt Statistics for low- and middle-income nations.
+---
 
-## 📖 Project Overview
-Global institutions produce massive amounts of multi-year debt statistics. However, the raw data is often in a complex wide format (years as individual columns), contains missing values and encoding issues, and is inefficient for direct analytical querying.
+### **Project Overview**
 
-This project implements a Python-based ETL pipeline to clean and normalize the data into a PostgreSQL Star Schema database. An interactive Streamlit dashboard provides high-performance data exploration and insights into global debt trends.
+Global debt statistics from the World Bank provide critical insight into the financial health of low- and middle-income nations. This project builds an end-to-end data engineering and analytics platform to ingest, structure, and explore International Debt Statistics using Python, PostgreSQL, and Streamlit.
 
-## 🏗️ Architecture & Pipeline
+The system implements a complete ETL pipeline that cleans and normalizes raw World Bank CSV data into a PostgreSQL Star Schema, enabling high-performance analytical queries. An interactive Streamlit dashboard allows stakeholders to explore global debt trends, regional comparisons, and country-level breakdowns through rich visualizations.
 
-1. **Data Preprocessing & ETL**: A Python pipeline using Pandas to load raw World Bank CSVs, clean missing values, handle Latin-1 encoding, strip trailing whitespaces, and unpivot (melt) the multi-year wide data format into a normalized long format.
-2. **Relational Database Design**: A PostgreSQL database modeled in a Star Schema format. It features standardized column names and establishes primary-foreign key relationships across a fact table (`debt_records`) and dimension tables (`countries` and `indicators`).
-3. **High-Performance Ingestion**: Optimized batch ingestion using Psycopg2's `execute_values` to stream hundreds of thousands of data points into the database rapidly.
-4. **Interactive Dashboard**: A Streamlit application featuring Plotly line charts, pie charts, and unified horizontal bar charts. Advanced caching (`st.cache_data` and `st.cache_resource`) minimizes database queries for a seamless user experience.
+---
 
-## 🚀 How to Run
+### **Key Features**
 
-1. **Verify Database**: Ensure your local PostgreSQL is running and has the `international_debt` database configured.
-2. **Execute Ingestion**: 
-   ```bash
-   python -m src.load_data
-   ```
-3. **Run the Streamlit Dashboard**:
-   ```bash
-   streamlit run app/app.py
-   ```
+* **ETL Data Pipeline:** Loads and transforms raw World Bank CSV data using Pandas into a normalized relational format.
+* **Star Schema Database Design:** Models data into a PostgreSQL fact-dimension schema for optimized analytical queries.
+* **High-Performance Ingestion:** Uses Psycopg2 `execute_values` to batch-ingest hundreds of thousands of records rapidly.
+* **Interactive Streamlit Dashboard:** Live deployment with KPI cards, trend lines, donut charts, and ranked bar charts.
+* **Advanced Query Caching:** Implements `st.cache_data` and `st.cache_resource` to minimize redundant database hits.
+* **Dynamic Filtering:** Region, country, and year filters that propagate across all dashboard views.
+* **SQL Injection Protection:** All user inputs are escaped via a custom `_esc()` helper before SQL interpolation.
+* **Analytical SQL Scripts:** Includes curated SQL queries for exploratory and insight-driven analysis.
+
+---
+
+### **Dataset**
+
+* **Source:** World Bank International Debt Statistics
+* **Coverage:** Low- and middle-income countries, multi-year debt records
+* **Format:** Wide-format CSV (years as columns), normalized to long format
+
+#### **Key Fields**
+
+* Country name and country code
+* Indicator name and indicator code
+* Annual debt values by year
+* World region classification
+
+---
+
+### **Project Structure**
+
+```bash
+International-Debt-Analysis-System/
+│
+├── data/                         # Raw World Bank CSV datasets
+│
+├── app/
+│   └── app.py                    # Streamlit dashboard application
+│
+├── src/
+│   ├── load_data.py              # ETL pipeline: cleaning, schema creation, ingestion
+│   ├── inspect_and_clean.py      # Data inspection and quality validation
+│   └── analytical queries.sql   # SQL analytical queries
+│
+├── project_presentation.ipynb   # Project summary notebook
+├── requirements.txt             # Python dependencies
+└── README.md
+```
+
+---
+
+### **How It Works**
+
+### **1. Data Preprocessing & ETL**
+
+* Loads raw World Bank CSVs with Latin-1 encoding support
+* Strips trailing whitespace and handles missing values
+* Unpivots wide-format (year columns) into normalized long format
+
+| Step                 | Operation                                      |
+| -------------------- | ---------------------------------------------- |
+| Encoding Fix         | Handles Latin-1 encoded characters             |
+| Melt / Unpivot       | Converts year columns into row-level records   |
+| Null Handling        | Drops rows with missing debt values            |
+| Column Normalization | Standardizes column names for schema alignment |
+
+---
+
+### **2. Star Schema Database Design**
+
+The system models the data into a PostgreSQL Star Schema with:
+
+```sql
+-- Dimension table: Countries
+CREATE TABLE countries (
+    country_code VARCHAR(10) PRIMARY KEY,
+    country_name TEXT,
+    region TEXT
+);
+
+-- Dimension table: Indicators
+CREATE TABLE indicators (
+    indicator_code VARCHAR(50) PRIMARY KEY,
+    indicator_name TEXT
+);
+
+-- Fact table: Debt Records
+CREATE TABLE debt_records (
+    id SERIAL PRIMARY KEY,
+    country_code VARCHAR(10) REFERENCES countries(country_code),
+    indicator_code VARCHAR(50) REFERENCES indicators(indicator_code),
+    year INT,
+    debt_value NUMERIC
+);
+```
+
+---
+
+### **3. High-Performance Ingestion**
+
+Batch ingestion using Psycopg2 `execute_values` for fast, transactional data loading:
+
+```python
+from psycopg2.extras import execute_values
+
+execute_values(cursor, "INSERT INTO debt_records VALUES %s", records)
+```
+
+---
+
+### **Model Performance**
+
+| Metric                   | Result                    |
+| ------------------------ | ------------------------- |
+| Records Ingested         | 500,000+                  |
+| Query Response Time      | Sub-second (with caching) |
+| Dashboard Filter Latency | Minimal (cached queries)  |
+
+---
+
+### **Interactive Application Deployment**
+
+The project features an interactive **Streamlit Web Application** with KPI cards, Plotly trend lines, donut charts, and ranked country bar charts — all driven by live PostgreSQL queries.
+
+#### **To Launch the Platform Locally:**
+```powershell
+streamlit run app/app.py
+```
+
+---
+
+### **Technology Stack**
+
+| Category             | Tools                      |
+| -------------------- | -------------------------- |
+| Programming          | Python                     |
+| Data Processing      | Pandas, NumPy              |
+| Database             | PostgreSQL, Psycopg2       |
+| ORM / Schema         | SQLAlchemy                 |
+| Visualization        | Plotly                     |
+| Notebook Environment | Jupyter Notebook           |
+| Web Framework        | Streamlit                  |
+
+---
+
+### **Getting Started**
+
+### **1. Clone Repository**
+
+```bash
+git clone https://github.com/jegadeesh17/International-Debt-Analysis-System.git
+
+cd International-Debt-Analysis-System
+```
+
+---
+
+### **2. Configure Database**
+
+Ensure your local PostgreSQL server is running and has the `international_debt` database created. Update the `.env` file with your credentials:
+
+```env
+DB_HOST=localhost
+DB_NAME=international_debt
+DB_USER=your_user
+DB_PASSWORD=your_password
+```
+
+---
+
+### **3. Install Dependencies**
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+### **4. Run ETL Pipeline**
+
+```bash
+python -m src.load_data
+```
+
+---
+
+### **5. Launch Dashboard**
+
+```bash
+streamlit run app/app.py
+```
+
+---
+
+### **Example Use Case**
+
+A policy analyst or economist can use this platform to:
+
+1. Compare total debt levels across world regions over time
+2. Identify the most heavily indebted countries within a region
+3. Analyze which debt indicators (e.g., long-term debt, IDA debt) dominate
+4. Drill down into a specific country's debt trajectory year by year
+
+---
+
+### **Future Improvements**
+
+* Real-time World Bank API integration for live data updates
+* Predictive debt forecasting using time-series models
+* PDF report export for analytical summaries
+* Country-level risk scoring and economic health indicators
+
+---
+
+### **Contributors**
+
+* **Jegadeesh D** — Data engineering, ETL pipeline, PostgreSQL schema design, Streamlit dashboard, and analytical SQL
+
+---
+
+### **License**
+
+MIT License
