@@ -54,6 +54,10 @@ engine = get_connection()
 # Streamlit only re-runs the query when the function arguments change,
 # so switching filters doesn't hit the database every time.
 
+def _esc(s):
+    """Escape single quotes for SQL string interpolation."""
+    return s.replace("'", "''") if isinstance(s, str) else s
+
 @st.cache_data
 def load_regions():
     """Fetch all distinct world regions from the countries table."""
@@ -66,7 +70,7 @@ def load_regions():
 def load_countries_by_region(region):
     """Fetch distinct countries for a given region."""
     return pd.read_sql(
-        f"SELECT DISTINCT country_name FROM countries WHERE region = '{region}' ORDER BY country_name;",
+        f"SELECT DISTINCT country_name FROM countries WHERE region = '{_esc(region)}' ORDER BY country_name;",
         engine
     )
 
@@ -83,9 +87,9 @@ def load_kpis(region=None, country=None, year=None):
     """Fetch total debt and total number of borrowing countries based on active filters."""
     where_clauses = []
     if region:
-        where_clauses.append(f"c.region = '{region}'")
+        where_clauses.append(f"c.region = '{_esc(region)}'")
     if country and country != "All Countries":
-        where_clauses.append(f"c.country_name = '{country}'")
+        where_clauses.append(f"c.country_name = '{_esc(country)}'")
     if year and year != "All Years":
         where_clauses.append(f"d.year = {year}")
         
@@ -106,9 +110,9 @@ def load_trend(region=None, country=None):
     """Fetch total debt grouped by year for the trend line chart, filtered by region and country."""
     where_clauses = []
     if region:
-        where_clauses.append(f"c.region = '{region}'")
+        where_clauses.append(f"c.region = '{_esc(region)}'")
     if country and country != "All Countries":
-        where_clauses.append(f"c.country_name = '{country}'")
+        where_clauses.append(f"c.country_name = '{_esc(country)}'")
         
     where_str = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
     query = f"""
@@ -126,9 +130,9 @@ def load_top_indicators(region=None, country=None, year=None):
     """Fetch the top 5 indicators by total debt for the donut chart, filtered by region, country, and year."""
     where_clauses = []
     if region:
-        where_clauses.append(f"c.region = '{region}'")
+        where_clauses.append(f"c.region = '{_esc(region)}'")
     if country and country != "All Countries":
-        where_clauses.append(f"c.country_name = '{country}'")
+        where_clauses.append(f"c.country_name = '{_esc(country)}'")
     if year and year != "All Years":
         where_clauses.append(f"d.year = {year}")
         
@@ -156,7 +160,7 @@ def load_total_debt_ranking(region, year=None):
         SELECT c.country_name, SUM(d.debt_value) AS metric_value
         FROM debt_records d
         JOIN countries c ON d.country_code = c.country_code
-        WHERE c.region = '{region}' {year_clause}
+        WHERE c.region = '{_esc(region)}' {year_clause}
         GROUP BY c.country_name
         ORDER BY metric_value DESC;
     """
@@ -173,8 +177,8 @@ def load_indicator_ranking(region, indicator_code, year=None):
             SELECT c.country_name, d.debt_value AS metric_value
             FROM debt_records d
             JOIN countries c ON d.country_code = c.country_code
-            WHERE c.region = '{region}'
-              AND d.indicator_code = '{indicator_code}'
+            WHERE c.region = '{_esc(region)}'
+              AND d.indicator_code = '{_esc(indicator_code)}'
               AND d.year = {year}
             ORDER BY metric_value DESC;
         """
@@ -188,7 +192,7 @@ def load_indicator_ranking(region, indicator_code, year=None):
                 ORDER BY country_code, year DESC
             ) d
             JOIN countries c ON d.country_code = c.country_code
-            WHERE c.region = '{region}'
+            WHERE c.region = '{_esc(region)}'
             ORDER BY metric_value DESC;
         """
     df = pd.read_sql(query, engine)
@@ -277,9 +281,9 @@ def load_heatmap_data(region=None, country=None):
     """Fetch top indicators over time for correlation heatmap."""
     where_clauses = []
     if region:
-        where_clauses.append(f"c.region = '{region}'")
+        where_clauses.append(f"c.region = '{_esc(region)}'")
     if country and country != "All Countries":
-        where_clauses.append(f"c.country_name = '{country}'")
+        where_clauses.append(f"c.country_name = '{_esc(country)}'")
         
     where_str = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
     
@@ -434,9 +438,9 @@ with tab1:
     @st.cache_data
     def load_raw_data(region, country=None, year=None):
         """Fetch a sample of 100 debt records for the selected region, country, and year."""
-        where_clauses = [f"c.region = '{region}'"]
+        where_clauses = [f"c.region = '{_esc(region)}'"]
         if country and country != "All Countries":
-            where_clauses.append(f"c.country_name = '{country}'")
+            where_clauses.append(f"c.country_name = '{_esc(country)}'")
         if year and year != "All Years":
             where_clauses.append(f"d.year = {year}")
             
