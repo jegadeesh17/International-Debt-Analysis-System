@@ -41,20 +41,16 @@ The system implements a complete ETL pipeline that cleans and normalizes raw Wor
 ### **Project Structure**
 
 ```bash
-International-Debt-Analysis-System/
+InternationalDebtAnalysis/
 │
-├── data/                         # Raw World Bank CSV datasets
-│
-├── app/
-│   └── app.py                    # Streamlit dashboard application
-│
-├── src/
-│   ├── load_data.py              # ETL pipeline: cleaning, schema creation, ingestion
-│   ├── inspect_and_clean.py      # Data inspection and quality validation
-│   └── analytical queries.sql   # SQL analytical queries
-│
-├── project_presentation.ipynb   # Project summary notebook
-├── requirements.txt             # Python dependencies
+├── app/                          # Streamlit application files
+│   └── app.py                    # Main Streamlit dashboard
+├── data/                         # Project datasets
+├── docs/                         # Documentation and visualizations
+├── models/                       # Saved trained models
+├── notebooks/                    # Jupyter notebooks (Source of Truth)
+├── src/                          # Core Python logic and scripts
+├── requirements.txt              # Python dependencies
 └── README.md
 ```
 
@@ -161,7 +157,7 @@ streamlit run app/app.py
 ```bash
 git clone https://github.com/jegadeesh17/International-Debt-Analysis-System.git
 
-cd International-Debt-Analysis-System
+cd InternationalDebtAnalysis
 ```
 
 ---
