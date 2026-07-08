@@ -26,6 +26,8 @@ The system implements a complete ETL pipeline that cleans and normalizes raw Wor
 ### **Dataset**
 
 * **Source:** World Bank International Debt Statistics
+* **In repo:** `IDS_ALLCountries_Data_sample.csv` plus full metadata CSVs
+* **Full data:** Place `IDS_ALLCountries_Data.csv` in `data/` — see [data/DATA_SETUP.md](data/DATA_SETUP.md)
 * **Coverage:** Low- and middle-income countries, multi-year debt records
 * **Format:** Wide-format CSV (years as columns), normalized to long format
 
