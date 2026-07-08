@@ -33,6 +33,11 @@ DB_CONFIG = dict(
 # This works no matter which directory you run the script from.
 DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
 
+def _resolve_data_file(filename: str, sample_filename: str) -> Path:
+    full = DATA_DIR / filename
+    sample = DATA_DIR / sample_filename
+    return full if full.exists() else sample
+
 # ── Step 1: Connect to PostgreSQL ─────────────────────────────────────────────
 # We use psycopg2 to execute all commands and insert data.
 
@@ -46,7 +51,7 @@ print("Connected to PostgreSQL successfully!")
 # Without specifying this, pandas will throw a UnicodeDecodeError.
 print("Loading CSV files...")
 
-df_data_raw    = pd.read_csv(DATA_DIR / 'IDS_ALLCountries_Data.csv',  encoding='latin-1')
+df_data_raw    = pd.read_csv(_resolve_data_file('IDS_ALLCountries_Data.csv', 'IDS_ALLCountries_Data_sample.csv'), encoding='latin-1')
 df_country_raw = pd.read_csv(DATA_DIR / 'IDS_CountryMetaData.csv',    encoding='latin-1')
 df_series_raw  = pd.read_csv(DATA_DIR / 'IDS_SeriesMetaData.csv',     encoding='latin-1')
 

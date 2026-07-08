@@ -604,7 +604,7 @@ with tab7:
     
     @st.cache_data
     def load_predefined_queries():
-        sql_file_path = Path(__file__).resolve().parent.parent / "src" / "analytical queries.sql"
+        sql_file_path = Path(__file__).resolve().parent.parent / "src" / "analytical_queries.sql"
         if not sql_file_path.exists():
             return {}
             

@@ -26,3 +26,7 @@ logs-*.txt
 *.pdf
 *.doc
 *.wpf
+
+# Large datasets (sample files committed)
+data/IDS_ALLCountries_Data.csv
+!data/IDS_ALLCountries_Data_sample.csv
